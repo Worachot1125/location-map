@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, Text, View, Button, FlatList, TextInput, Modal, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, TextInput, Modal } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT, Region } from "react-native-maps";
 import * as Location from "expo-location";
 
@@ -11,7 +11,6 @@ export default function App() {
   const [placeDesc, setPlaceDesc] = useState("");
   const mapRef = useRef<MapView>(null);
 
-  // ขอ permission ตอนเริ่มต้น
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -24,7 +23,6 @@ export default function App() {
     })();
   }, []);
 
-  // ฟังก์ชันหาตำแหน่งปัจจุบัน
   const goToCurrentLocation = async () => {
     const loc = await Location.getCurrentPositionAsync({});
     setLocation(loc);
@@ -36,7 +34,6 @@ export default function App() {
     });
   };
 
-  // ฟังก์ชันบันทึกสถานที่
   const savePlace = () => {
     if (!location) return;
     const newPlace = {
@@ -52,7 +49,6 @@ export default function App() {
     setModalVisible(false);
   };
 
-  // ฟังก์ชันไปยังสถานที่ที่เลือก
   const goToPlace = (place: any) => {
     mapRef.current?.animateToRegion({
       latitude: place.latitude,
@@ -77,6 +73,7 @@ export default function App() {
         initialRegion={initialRegion}
         showsUserLocation={true}
         style={styles.map}
+        mapType="mutedStandard"
       >
         {places.map((place) => (
           <Marker
@@ -89,8 +86,12 @@ export default function App() {
       </MapView>
 
       <View style={styles.buttons}>
-        <Button title="ตำแหน่งปัจจุบัน" onPress={goToCurrentLocation} />
-        <Button title="บันทึกสถานที่" onPress={() => setModalVisible(true)} />
+        <TouchableOpacity style={styles.button} onPress={goToCurrentLocation}>
+          <Text style={styles.buttonText}>📍 ตำแหน่งปัจจุบัน</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={() => setModalVisible(true)}>
+          <Text style={styles.buttonText}>💾 บันทึกสถานที่</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -98,22 +99,27 @@ export default function App() {
         data={places}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => goToPlace(item)}>
-            <Text style={styles.listItem}>📍 {item.title} - {item.description}</Text>
+          <TouchableOpacity style={styles.card} onPress={() => goToPlace(item)}>
+            <Text style={styles.cardTitle}>📍 {item.title}</Text>
+            <Text style={styles.cardDesc}>{item.description}</Text>
           </TouchableOpacity>
         )}
       />
 
-      {/* Modal กรอกชื่อ/คำบรรยาย */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text>ชื่อสถานที่:</Text>
-            <TextInput style={styles.input} value={placeName} onChangeText={setPlaceName} />
-            <Text>คำบรรยาย:</Text>
-            <TextInput style={styles.input} value={placeDesc} onChangeText={setPlaceDesc} />
-            <Button title="บันทึก" onPress={savePlace} />
-            <Button title="ยกเลิก" onPress={() => setModalVisible(false)} />
+            <Text style={styles.modalTitle}>เพิ่มสถานที่ใหม่</Text>
+            <TextInput style={styles.input} placeholder="ชื่อสถานที่" value={placeName} onChangeText={setPlaceName} />
+            <TextInput style={styles.input} placeholder="คำบรรยาย" value={placeDesc} onChangeText={setPlaceDesc} />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={savePlace}>
+                <Text style={styles.buttonText}>บันทึก</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setModalVisible(false)}>
+                <Text style={styles.buttonText}>ยกเลิก</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -122,12 +128,40 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  map: { width: "100%", height: "60%" },
+  container: { flex: 1, backgroundColor: "#f7f7f7" },
+  map: { width: "100%", height: "55%" },
   buttons: { flexDirection: "row", justifyContent: "space-around", padding: 10 },
-  list: { flex: 1, backgroundColor: "#f0f0f0" },
-  listItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: "#ccc" },
+  button: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 25,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  saveButton: { backgroundColor: "#2196F3" },
+  cancelButton: { backgroundColor: "#f44336" },
+  buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
+  list: { flex: 1, marginHorizontal: 10, marginTop: 10 },
+  card: {
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  cardTitle: { fontWeight: "bold", fontSize: 16 },
+  cardDesc: { color: "#555", marginTop: 5 },
   modalContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" },
-  modalContent: { width: "80%", backgroundColor: "white", padding: 20, borderRadius: 10 },
-  input: { borderWidth: 1, borderColor: "#ccc", marginBottom: 10, padding: 5, borderRadius: 5 },
+  modalContent: { width: "85%", backgroundColor: "white", padding: 20, borderRadius: 15 },
+  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 15, textAlign: "center" },
+  input: { borderWidth: 1, borderColor: "#ccc", marginBottom: 15, padding: 10, borderRadius: 8 },
+  modalButtons: { flexDirection: "row", justifyContent: "space-between" },
 });
